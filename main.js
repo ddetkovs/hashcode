@@ -165,8 +165,9 @@ Drone.prototype = {
 
                 var types = {};
                 var maxWeight = order.items.reduce(function (weight, itemId) {
-                    if (warehouse.inventory[itemId] > 0) {
-                        var newWeight = weight + warehouse.inventory[itemId];
+                    var itemsMissing = types[itemId] || 0;
+                    if (warehouse.inventory[itemId] - types[itemId] > 0) {
+                        var newWeight = weight + products[itemId];
                         if (newWeight <= settings.maximumLoad) {
                             if (!types[itemId]) {
                                 distance += 2;
@@ -253,4 +254,3 @@ while (time < settings.deadline) {
 
     time++;
 }
-
