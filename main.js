@@ -18,7 +18,7 @@ var settings = {
     maximumLoad: undefined
 };
 
-var data = fs.readFileSync('./redundancy.in', 'utf8');
+var data = fs.readFileSync('./busy_day.in', 'utf8');
 
 data = data.split('\n').map(function (line) {
     var pa = line.split(' ').map(function (number) {
@@ -28,7 +28,7 @@ data = data.split('\n').map(function (line) {
     return pa;
 });
 
-var out = fs.createWriteStream('./log3.out');
+var out = fs.createWriteStream('./log1.out');
 
 var line = data.shift();
 
@@ -82,6 +82,9 @@ Drone.prototype = {
     loadItem: function (warehouseId, itemId, count) {
         var warehouse = warehouses[warehouseId]
         this.weight += products[itemId] * count;
+        if(this.weight > settings.maximumLoad){
+            console.log('slslls');
+        }
         this.inventory[itemId] += count;
         this.timeToCompleteTask++;
         warehouse.inventory[itemId] -= count;
@@ -164,10 +167,11 @@ Drone.prototype = {
                 );
 
                 var types = {};
-                var maxWeight = order.items.reduce(function (weight, itemId) {
-                    if (warehouse.inventory[itemId] > 0) {
-                        var newWeight = weight + warehouse.inventory[itemId];
-                        if (newWeight <= settings.maximumLoad) {
+                var maxWeight = order.items.reduce(function (weight, itemId){
+                    var itemsMissing = types[itemId] || 0;
+                    if (warehouse.inventory[itemId] - itemsMissing > 0) {
+                        var newWeight = weight + products[itemId];
+                        if (newWeight < settings.maximumLoad) {
                             if (!types[itemId]) {
                                 distance += 2;
                                 types[itemId] = 1;
@@ -200,6 +204,7 @@ Drone.prototype = {
             } : bestOrder;
 
         }, {score: 0, orderId: 0, warehouseId: 0, types: {}})
+
 
         Object.keys(bestOrderFromWarehouse.types)
             .forEach(function (itemId) {
