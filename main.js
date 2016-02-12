@@ -82,6 +82,9 @@ Drone.prototype = {
     loadItem: function (warehouseId, itemId, count) {
         var warehouse = warehouses[warehouseId]
         this.weight += products[itemId] * count;
+        if(this.weight > settings.maximumLoad){
+            console.log('slslls');
+        }
         this.inventory[itemId] += count;
         this.timeToCompleteTask++;
         warehouse.inventory[itemId] -= count;
@@ -123,7 +126,7 @@ Drone.prototype = {
         }
 
         Object.keys(differentItems).forEach(function (itemId) {
-            var count = differentItems[itemId]
+            var count = differentItems[itemId];
             out.write(that.id + ' D ' + orderId + ' ' + itemId + ' ' + count + '\n');
             //console.log(that.id + ' D ' + orderId + ' ' + itemId + ' ' + count + '\n');
         });
@@ -155,7 +158,6 @@ Drone.prototype = {
                     that.location.y,
                     warehouse.location.x,
                     warehouse.location.y);
-
                 distance += calculateTime(
                     warehouse.location.x,
                     warehouse.location.y,
@@ -164,11 +166,11 @@ Drone.prototype = {
                 );
 
                 var types = {};
-                var maxWeight = order.items.reduce(function (weight, itemId) {
+                var maxWeight = order.items.reduce(function (weight, itemId){
                     var itemsMissing = types[itemId] || 0;
                     if (warehouse.inventory[itemId] - itemsMissing > 0) {
                         var newWeight = weight + products[itemId];
-                        if (newWeight <= settings.maximumLoad) {
+                        if (newWeight < settings.maximumLoad) {
                             if (!types[itemId]) {
                                 distance += 2;
                                 types[itemId] = 1;
@@ -183,25 +185,32 @@ Drone.prototype = {
 
                 var score;
                 if (maxWeight === 0){
-                    score = 0;
-                }else {
-                    score = distance / maxWeight;
+                    score =  Number.MAX_VALUE;
+                } else {
+                    if(distance > settings.deadline - time) {
+                      score =  Number.MAX_VALUE;
+                    } else {
+                      score = distance / maxWeight;
+                    }
                 }
 
-                return (bestWarehouse.score > score) ?
+                return (bestWarehouse.score < score) ?
                     bestWarehouse :
                 {score: score, warehouseId: warehouseId, types: types};
-            }, {score: 0, warehouseId: 0, types: {}});
+            }, {score: Number.MAX_VALUE, warehouseId: 0, types: {}});
 
-            return (bestWarehouse.score > bestOrder.score) ? {
+            return (bestWarehouse.score < bestOrder.score) ? {
                 score: bestWarehouse.score,
                 orderId: orderId,
                 warehouseId: bestWarehouse.warehouseId,
                 types: bestWarehouse.types
             } : bestOrder;
 
-        }, {score: 0, orderId: 0, warehouseId: 0, types: {}})
+        }, {score: Number.MAX_VALUE, orderId: 0, warehouseId: 0, types: {}})
 
+        if(bestOrderFromWarehouse.score == Number.MAX_VALUE) {
+          return;
+        }
         Object.keys(bestOrderFromWarehouse.types)
             .forEach(function (itemId) {
                 that.loadItem(
@@ -216,7 +225,7 @@ Drone.prototype = {
 
 var drones = [];
 for(var i = 0; i < settings.numberOfDrones; i++){
-    drones.push(new Drone(i, warehouses[0].x, warehouses[0].y));
+    drones.push(new Drone(i, warehouses[0].location.x, warehouses[0].location.y));
 }
 
 
